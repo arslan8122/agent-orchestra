@@ -239,6 +239,7 @@ Next: review .orchestra.json, run /adr list, then a dry run.
 | `work.tickets` | provider, list, ready status, whether to link the ticket in the PR |
 | `repos.<name>` | `path` (relative to the config), `base` branch, optional `branch_type` override (e.g. `docs`). **A repo missing here → agents stop and ask; they never default to `main`.** |
 | `verify` | commands that must exit 0 before a builder says done; run exactly as written |
+| `repos.<name>.verify` | per-repo override of `verify`. `{worktree}` becomes the builder's worktree path, e.g. `docker compose run --rm --no-deps -v {worktree}:/app api npm test`, so a container tests the builder's code rather than the main checkout |
 | `pr.numbering` | `prefix` (`AA`), `digits` (4); counters are per repo |
 | `pr.branch` | `pattern` (`{type}/{id}-{slug}`), allowed `types` |
 | `pr.commit.pattern` | regex every commit subject must match; one line, no body |

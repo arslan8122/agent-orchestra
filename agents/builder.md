@@ -19,8 +19,11 @@ manager, by the name in your brief.
    them fail for the right reason. Don't drop, merge or weaken a planned case; if one is wrong
    or impossible, ask the manager and wait for the record to be updated. You may add more
    tests; you may not ship fewer.
-3. **Implement** until every `verify` command in `.orchestra.json` passes. Run them exactly as
-   written (they often run inside containers; don't substitute host commands).
+3. **Implement** until every verify command passes: `repos.<repo>.verify` if your repo has one,
+   otherwise the top-level `verify`. Replace `{worktree}` with your worktree's absolute path
+   (so containerised checks test *your* code, not the main checkout) and run them exactly as
+   written. Don't substitute host commands. A repo with `"verify": []` has no automated check:
+   say so under Verification and rely on the planned tests you ran.
 4. **ADRs.** Read the ADRs in your brief and don't contradict them. If you make a new design
    choice, draft a Proposed ADR from `templates/adr.md` on your branch.
 5. **Review loop.** Start the reviewer (`agent-orchestra:reviewer`) on your diff. Fix
