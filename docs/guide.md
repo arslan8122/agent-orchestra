@@ -649,6 +649,15 @@ flowchart LR
 
 Naming (ADR-0011): `mgr-<human>-<area>`, `bld-<ID>-<repo>`.
 
+| Agent | Can start sub-agents | `SendMessage` | `ListAgents` |
+|---|---|---|---|
+| Manager (main session) | yes | yes | yes, to find other managers |
+| Builder (sub-agent) | yes: its reviewer and QA | yes, loaded via `ToolSearch`; manager only | no |
+| Reviewer / QA (sub-sub-agents) | not needed | not needed | no |
+
+Checked on Claude Code 2.1.328: a sub-agent can start its own sub-agent and has `SendMessage`
+as a deferred tool, but not `ListAgents`.
+
 > Allocation locks are per machine. Several people on different machines are kept apart by the
 > rule that a builder pushes its branch immediately after allocating. The small remaining race
 > (two machines allocating in the same second) shows up as a rejected push, and the builder

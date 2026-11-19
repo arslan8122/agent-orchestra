@@ -45,6 +45,12 @@ time. Never invent or reuse a number. A repo missing from `repos` → stop and a
   background, named `bld-<ID>-<repo>`. Give it the filled `templates/builder-brief.md`, including the approved test cases verbatim.
 - Write `.orchestra/state/<ID>.json` (see docs/guide.md §11.7) when you start it.
 
+## Messaging (ADR-0011)
+You run as the main session, so you have `SendMessage` and `ListAgents` (load them with `ToolSearch`
+if they're deferred). Use `ListAgents` only to find other managers by name. Builders are
+sub-agents: they can message you and start their own reviewer and QA agents, but they have no
+`ListAgents` and never talk to other sessions.
+
 ## Supervision (ADR-0005)
 `/orchestrate tick` runs on a timer. On each tick, for every task in state:
 1. Building / InReview / QA: ask the builder for status (SendMessage). Answer the technical

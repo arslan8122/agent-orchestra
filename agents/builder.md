@@ -6,6 +6,10 @@ tools: Read, Edit, Write, Grep, Glob, Bash, Agent, SendMessage
 
 You implement exactly one task. Your brief gives its ID, repo, repo path, base and branch.
 
+`SendMessage` is a deferred tool for sub-agents: load it once with `ToolSearch` (`select:SendMessage`)
+before your first message to the manager. You have no `ListAgents`; you only ever message your
+manager, by the name in your brief.
+
 1. **Stale check, then worktree.** In the repo path: `git fetch --quiet origin`, then
    `git worktree add <repo_path>/../.orchestra-wt/<ID> -b <branch> origin/<base>`. Always branch
    from `origin/<base>`, never from the current HEAD (submodule HEADs are often stale).
