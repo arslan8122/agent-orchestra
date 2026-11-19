@@ -421,7 +421,7 @@ sequenceDiagram
     B->>G: one-line commit · gh pr create --draft (Demo placeholder)
     B->>Q: prove it (PR #212)
     Q->>Q: Playwright run with video
-    Q->>G: upload-proof.sh: gh pr comment --attach demo.mp4 · link in Demo · gh pr ready
+    Q->>G: upload-proof.sh: Demo → ![Demo](./demo.mp4) · gh pr edit --attach · gh pr ready
     Q-->>B: video URL · 12 passed
     B-->>M: PR #212 ready
     M->>H: "AA-0017 PR ready: #212 — inbox shows reply time"
@@ -533,18 +533,20 @@ flowchart LR
     R["QA runs proof.record<br/>(Playwright --video=on)"] --> W["recording.webm"]
     W --> C["ffmpeg → demo.mp4<br/>720p, ≤ 10 MB"]
     C --> A{"gh ≥ 2.99?"}
-    A -- yes --> GH["gh pr comment PR --attach demo.mp4<br/>→ GitHub attachment storage<br/>(inline player, repo visibility)"]
+    A -- yes --> GH["Demo placeholder → ![Demo](./demo.mp4)<br/>gh pr edit PR --body-file … --attach demo.mp4<br/>→ plays inline in the PR description"]
+    GH -. "edit failed" .-> CM["gh pr comment --attach<br/>(video in a comment)"]
     A -- no --> F{"proof.fallback = s3?"}
     F -- yes --> S3["aws s3 cp → bucket (e.g. R2 free tier)<br/>+ GIF preview"]
     F -- no --> X["exit 3: PR stays draft<br/>manager asks a human to attach"]
-    GH & S3 --> E["Replace Demo placeholder with link<br/>gh pr edit · gh pr ready"]
+    GH --> RD["gh pr ready"]
+    CM & S3 --> E["Link in Demo section<br/>gh pr edit · gh pr ready"]
 ```
 
 **Free hosting options, compared:**
 
 | Option | Where the file lives | In the PR | Notes |
 |---|---|---|---|
-| **`gh --attach`** (default) | GitHub's attachment storage (`user-attachments`), not git | Inline video player | Free. Inherits repo visibility. Needs gh 2.99+. 10 MB video limit on free plans |
+| **`gh pr edit --attach`** (default) | GitHub's attachment storage (`user-attachments`), not git | Video player inline in the PR description's Demo section | Free. Inherits repo visibility. Needs gh 2.99+. 10 MB video limit on free plans |
 | **Cloudflare R2** (fallback) | Your bucket | GIF preview linking to the mp4 | Free tier: 10 GB storage, free egress. Links are unguessable, not access-controlled; set a lifecycle rule to delete after 90 days |
 | Backblaze B2 | Your bucket | GIF + link | 10 GB free; egress free up to 3× stored data |
 | Orphan media branch | Inside the repo | GIF + link | Avoid: grows every clone |
@@ -554,8 +556,9 @@ Back-end changes get a video too: QA records a terminal session running the test
 request and response. If you'd rather exempt them, supersede ADR-0008 instead of quietly skipping
 it.
 
-After a fix requested in review, QA attaches a **new** video and the Demo link is updated. The old
-comment stays for history.
+`gh` rewrites a reference already in the body (`![Demo](./demo.mp4)`) to the uploaded file, which
+is how the video lands inside the Demo section rather than at the end. After a fix requested in
+review, QA attaches a **new** video and moves the previous one under a "Previous" line in Demo.
 
 ---
 
@@ -726,7 +729,7 @@ session in the same repo is unaffected.
   "stage": "PROpen",
   "review_rounds": 2,
   "pr": 212,
-  "proof": "https://github.com/<org>/<repo>/pull/212#issuecomment-…",
+  "proof": "inline in PR #212 description",
   "paired_with": [],
   "last_tick": "2026-11-19T10:45:00Z",
   "last_seen_comment_id": null,

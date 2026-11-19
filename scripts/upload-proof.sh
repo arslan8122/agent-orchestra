@@ -5,8 +5,11 @@
 #
 # 1. Re-encode to mp4 (<= 10 MB, GitHub's free-plan video limit).
 # 2. Host it, in order of preference:
-#      a. GitHub attachment via `gh pr comment --attach` (gh >= 2.99): inline player,
-#         stored on GitHub's attachment CDN, inherits repo visibility. Free.
+#      a. GitHub attachment in the PR body: the Demo placeholder becomes
+#         `![Demo](./demo.mp4)` and `gh pr edit --attach` uploads the file and rewrites the
+#         reference, so the video plays inline in the description. Stored on GitHub's
+#         attachment CDN, never in git; inherits repo visibility. Free. (gh >= 2.99)
+#      a2. Same upload as a PR comment (`gh pr comment --attach`) if editing the body fails.
 #      b. proof.fallback (S3-compatible bucket, e.g. Cloudflare R2 free tier) + GIF preview.
 # 3. Replace the <!-- orchestra:demo pending --> placeholder in the PR body with the link.
 # 4. With --ready, take the PR out of draft.
@@ -28,6 +31,20 @@ done
 [ "$(wc -c < "$mp4")" -le 10000000 ] || echo "warning: video still over 10 MB" >&2
 
 url=""
+body="$work/body.md"
+if gh pr edit --help 2>/dev/null | grep -q -- '--attach'; then
+  gh pr view "$pr" --json body -q .body > "$body"
+  python3 - "$body" <<'PY2'
+import sys
+p = sys.argv[1]; s = open(p).read(); ref = "![Demo](./demo.mp4)"
+s = s.replace("<!-- orchestra:demo pending -->", ref, 1) if "<!-- orchestra:demo pending -->" in s else s + f"\n\n## Demo\n{ref}\n"
+open(p, "w").write(s)
+PY2
+  if gh pr edit "$pr" --body-file "$body" --attach "$mp4" >/dev/null 2>&1; then
+    [ "$ready" = "--ready" ] && gh pr ready "$pr" >/dev/null
+    echo "attached inline in PR #$pr description"; exit 0
+  fi
+fi
 if gh pr comment --help 2>/dev/null | grep -q -- '--attach'; then
   out=$(gh pr comment "$pr" --body "Demo video (recorded by QA)" --attach "$mp4" 2>&1) && \
     url=$(printf '%s\n' "$out" | grep -oE 'https://github\.com/[^ ]+' | tail -1)
@@ -57,7 +74,6 @@ if [ -z "$url" ]; then
   exit 3
 fi
 
-body="$work/body.md"
 gh pr view "$pr" --json body -q .body > "$body"
 python3 - "$body" "$url" <<'PY'
 import sys

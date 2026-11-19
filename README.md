@@ -19,7 +19,7 @@ flowchart LR
 - **Test-first builders in isolated worktrees.** Each builder writes a failing test, implements,
   passes your `verify` commands, and loops with a reviewer at most three times.
 - **Video proof on every PR, kept out of your repo.** QA records the feature working and attaches
-  it with `gh --attach` to GitHub's attachment storage, falling back to a free R2/S3 bucket.
+  it inline in the PR description with `gh pr edit --attach` (GitHub's attachment storage), falling back to a free R2/S3 bucket.
 - **Your conventions, enforced.** Per-repo base branches, `AA-NNNN` IDs, `feat/AA-NNNN-slug`
   branches, one-line commits, required PR sections and no attribution. Hooks check every
   `git commit`, `git push` and `gh pr create`.
