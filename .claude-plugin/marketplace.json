@@ -1,0 +1,11 @@
+{
+  "name": "agent-orchestra",
+  "owner": { "name": "Arslan Asghar" },
+  "plugins": [
+    {
+      "name": "agent-orchestra",
+      "source": "./",
+      "description": "Manager/builder agent orchestration with video-proof PRs and ADRs. Never merges."
+    }
+  ]
+}

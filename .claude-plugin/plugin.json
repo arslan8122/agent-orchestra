@@ -1,0 +1,10 @@
+{
+  "name": "agent-orchestra",
+  "version": "0.1.0",
+  "description": "Manager/builder agent orchestration for Claude Code: tickets or text tasks in, test-first builders, capped review loops, video-proof pull requests out. Never merges. ADRs throughout.",
+  "author": { "name": "Arslan Asghar" },
+  "homepage": "https://github.com/arslan8122/agent-orchestra",
+  "repository": "https://github.com/arslan8122/agent-orchestra",
+  "license": "MIT",
+  "keywords": ["orchestration", "multi-agent", "adr", "pull-requests", "worktrees"]
+}
