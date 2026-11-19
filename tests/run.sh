@@ -75,5 +75,29 @@ id2=$(bash "$HERE/scripts/allocate-number.sh" app "$PWD" 2>/dev/null)
 [ "$id2" = "AA-0009" ] && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAIL: allocator second id (got '$id2', want AA-0009)"; }
 bash "$HERE/scripts/allocate-number.sh" nope "$PWD" >/dev/null 2>&1 && { fail=$((fail+1)); echo "FAIL: unknown repo should fail"; } || pass=$((pass+1))
 
+# validate-task.py
+good_task="$T/good-task.md"; cat > "$good_task" <<'MD'
+## Acceptance criteria
+- AC-1: rows show reply time
+- AC-2: unreplied rows say awaiting reply
+## Test cases
+| ID | Covers | Level | Given | When | Then | Video |
+|---|---|---|---|---|---|---|
+| TC-1 | AC-1 | unit | reply after 2h | format | "replied in 2h" | no |
+| TC-2 | AC-2 | e2e | no reply | open inbox | "awaiting reply" | yes |
+### Edge and failure cases
+| ID | Covers | Level | Given | When | Then | Video |
+|---|---|---|---|---|---|---|
+| TC-3 | AC-1 | unit | reply before request | format | "awaiting reply" | no |
+MD
+vt() { python3 "$HERE/scripts/validate-task.py" "$1" >/dev/null 2>&1; echo $?; }
+expect() { [ "$2" = "$3" ] && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAIL: $1 (want $3, got $2)"; }; }
+expect "valid task passes" "$(vt "$good_task")" 0
+grep -v "TC-2" "$good_task" > "$T/t1.md";            expect "uncovered AC fails"      "$(vt "$T/t1.md")" 1
+sed '/### Edge/,$d' "$good_task" > "$T/t2.md";        expect "no edge case fails"      "$(vt "$T/t2.md")" 1
+sed 's/| unit | reply after 2h |/| unit | |/' "$good_task" > "$T/t3.md"; expect "empty Given fails" "$(vt "$T/t3.md")" 1
+sed 's/| e2e |/| smoke |/' "$good_task" > "$T/t4.md"; expect "bad level fails"         "$(vt "$T/t4.md")" 1
+{ cat "$good_task"; echo "- AC-3: {criterion}"; } > "$T/t5.md"; expect "placeholder fails" "$(vt "$T/t5.md")" 1
+
 echo "passed: $pass  failed: $fail"
 [ "$fail" -eq 0 ]

@@ -28,7 +28,7 @@ Set the project up. Write nothing until all four answers are in.
 3. Write `.orchestra.json` from the answers (start from `templates/orchestra.example.json`,
    one `repos` entry per repo with its base). A repo whose base you don't know: ask; never
    default to main.
-4. Create `docs/adr/` with ADR-0001 to ADR-0016 from `${CLAUDE_PLUGIN_ROOT}/docs/adr/`,
+4. Create `docs/adr/` with ADR-0001 to ADR-0017 from `${CLAUDE_PLUGIN_ROOT}/docs/adr/`,
    status **Proposed**, Context rewritten for this project. Add `docs/adr/README.md` index.
 5. Add `.orchestra/` to `.gitignore`. Append `templates/claude-md-section.md` to CLAUDE.md.
 6. Check the tools: `gh --version` (warn if < 2.99: no `--attach`), `gh auth status`, `ffmpeg`,
@@ -39,15 +39,19 @@ Set the project up. Write nothing until all four answers are in.
 ## tasks "<text>"
 Only when `work.source` is `text`. The text may hold one task or a list (lines starting with
 `-`, `*` or `1.`). Follow the manager's "Work intake" rules: split, choose repos, one question per
-ambiguous task with a recommendation, show the list, and after approval allocate IDs and
-write `.orchestra/tasks/<ID>.md`. Then do `build` for the approved tasks.
+ambiguous task with a recommendation, then **plan the test cases** for each task (manager's
+"Test cases are planned with the task"), show criteria and test cases together, and after
+approval allocate IDs, write `.orchestra/tasks/<ID>.md`, and run `scripts/validate-task.py` on each. Then do `build` for the approved tasks.
 
 ## build [ticket…]
 Start builders for the given tickets (ticket mode), or for every approved task without a
-builder. Respect `builders.max` and dependency order. Write a state file per task.
+builder. In ticket mode, plan test cases from the ticket first and get them approved (post
+them back to the ticket as a comment when the MCP server allows). Never start a builder for
+a task whose record fails `scripts/validate-task.py`. Respect `builders.max` and dependency order. Write a state file per task.
 
 ## plan "<goal>"
-Break a larger goal into tasks or ticket drafts with acceptance criteria and dependencies.
+Break a larger goal into tasks or ticket drafts with acceptance criteria, planned test cases
+(Given/When/Then, incl. one edge or failure case each) and dependencies.
 Show them for approval. Don't start builders.
 
 ## tick

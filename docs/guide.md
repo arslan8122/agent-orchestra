@@ -63,8 +63,9 @@ flowchart TB
     GH -. "review comments" .-> M
 ```
 
-You give the manager work: ticket IDs, or one or more plain-text tasks. The manager allocates each
-task an ID (`AA-0031`) and starts one builder per task. Builders write a failing test first, build
+You give the manager work: ticket IDs, or one or more plain-text tasks. The manager **plans each
+task with its acceptance criteria and test cases**, and you approve them. It then allocates each
+task an ID (`AA-0031`) and starts one builder per task. Builders write the planned tests first, build
 the feature, loop with a reviewer at most three times, and open a **draft** PR. A QA agent runs the
 feature, records a video, attaches it to the PR and takes the PR out of draft. You watch the video
 and review in GitHub, then merge. If you leave review comments, the manager sees them on its next
@@ -80,11 +81,12 @@ Each rule is enforced by a mechanism, not just stated in a prompt, and each has 
 | Rule | Enforced by | ADR |
 |---|---|---|
 | No task, no work | Builders start only from a ticket or a recorded text task | 0002 |
+| Test cases are planned before building | Manager writes AC + Given/When/Then test cases; `scripts/validate-task.py` must pass before a builder starts | 0017 |
 | Manager never writes code | Manager has no Edit tool; `manager_no_write.py` blocks Write outside `.orchestra/`; `pr_guard.py` blocks the manager's `git commit/push` | 0003 |
 | Humans never talk to builders | Builders are started by the manager; their questions route back to it | 0004 |
 | Supervision runs on a timer | `/loop 15m /orchestrate tick` | 0005 |
 | Max 3 review rounds | Round counter in `.orchestra/state/<ID>.json`; round 4 escalates | 0006 |
-| Done means verified | `verify` commands must pass; the failing test comes first | 0007 |
+| Done means verified | Every planned test case exists, failed first and now passes; `verify` passes | 0007, 0017 |
 | Every PR carries video proof | PR opens as draft with a Demo placeholder; `gh pr ready` is blocked until the video is attached | 0008 |
 | **The system never merges** | `pr_guard.py` blocks `gh pr merge` and pushes to base branches; branch protection backs it | 0009 |
 | One allocator for task IDs | `scripts/allocate-number.sh`, per repo, under a lock | 0010 |
@@ -124,9 +126,9 @@ agent-orchestra/
 ├── agents/{manager, builder, reviewer, qa}.md
 ├── commands/{orchestrate, adr}.md
 ├── hooks/{hooks.json, _common.py, manager_no_write.py, pr_guard.py, adr_guard.py}
-├── scripts/{allocate-number.sh, upload-proof.sh}
+├── scripts/{allocate-number.sh, upload-proof.sh, validate-task.py}
 ├── templates/{orchestra.example.json, pr-body.md, builder-brief.md, task.md, adr.md, claude-md-section.md}
-├── docs/{guide.md, adr/0001…0016 + README.md}
+├── docs/{guide.md, adr/0001…0017 + README.md}
 └── tests/run.sh
 ```
 
@@ -211,7 +213,7 @@ Q2. I read .claude/commands/open-pr.md:
     • branch:  feat/AA-NNNN-<2–5 word slug>  (fix/ for repairs; docs/ in docs-site)
     • bases:   api → development · web → development · docs-site → main
     • commit:  one line, `feat(<scope>): …`, no body, no attribution
-    • PR body: Problem · Change · Deliberately not done · Verification · Demo · Paired with
+    • PR body: Problem · Change · Deliberately not done · Test cases · Verification · Demo · Paired with
     Correct?
 > yes
 
@@ -222,7 +224,7 @@ Q3. Where should PR videos go?
 Q4. Builders at once?  1 / 3 (recommended) / 5
 > 3
 
-Wrote .orchestra.json, docs/adr/0001–0016 (Proposed), .gitignore, CLAUDE.md section.
+Wrote .orchestra.json, docs/adr/0001–0017 (Proposed), .gitignore, CLAUDE.md section.
 gh 2.99.0 ✓  ffmpeg ✓  verify: 2/2 commands pass.
 Next: review .orchestra.json, run /adr list, then a dry run.
 ```
@@ -309,8 +311,10 @@ ORCHESTRA_ROLE=manager claude --agent agent-orchestra:manager
 The manager:
 1. Splits the message into tasks and picks a repo for each.
 2. Asks at most one question per ambiguous task, each with a recommendation.
-3. Shows you the list.
-4. After you approve, allocates IDs and writes `.orchestra/tasks/<ID>.md` for each.
+3. **Plans each task's test cases** (§5.2).
+4. Shows you the criteria and test cases together.
+5. After you approve, allocates IDs, writes `.orchestra/tasks/<ID>.md` for each, and checks each
+   record with `scripts/validate-task.py`.
 
 A task spanning two repos becomes two task records with two IDs, one from each repo's counter.
 Their PRs reference each other under *Paired with* (§7.4).
@@ -322,7 +326,56 @@ Their PRs reference each other under *Paired with* (§7.4).
 /orchestrate build                     # everything in the ready status
 ```
 
-### 5.2 Your daily loop
+### 5.2 Planning test cases with the task
+
+Test cases are written **while the task is planned**, before any builder starts (ADR-0017). That's
+the moment you agree what "done" means, before code exists to argue about. The manager reads the
+target repo's existing tests first, so the cases match its framework and naming.
+
+```mermaid
+flowchart LR
+    T["Task text or ticket"] --> AC["Acceptance criteria<br/>AC-1, AC-2 …<br/>(observable behaviour)"]
+    AC --> TC["Test cases<br/>TC-n: Given / When / Then<br/>covers AC · level · video?"]
+    TC --> EDGE["≥ 1 edge / failure case<br/>empty · invalid · unauthorised · error path"]
+    EDGE --> OOS["Out of scope"]
+    OOS --> H{"You approve<br/>criteria + test cases"}
+    H -- "change" --> AC
+    H -- "approve" --> V["validate-task.py ✓"]
+    V --> B["Builder: implement TCs first,<br/>see them fail, then build"]
+```
+
+What you're shown for approval:
+
+```text
+AA-0017 · web · "Inbox: show the contractor's reply time"
+
+Acceptance criteria
+  AC-1  Each inbox row shows how long the contractor took to first reply ("replied in 2h").
+  AC-2  Rows with no reply yet show "awaiting reply".
+
+Test cases
+  ID    Covers  Level        Given                              When              Then                                  Video
+  TC-1  AC-1    unit         a thread with request 09:00, reply 11:00   formatReplyTime()  returns "replied in 2h"                no
+  TC-2  AC-1    e2e          inbox with 3 replied threads       open /inbox       each row shows its reply time         yes
+  TC-3  AC-2    e2e          a thread with no reply             open /inbox       row shows "awaiting reply"            yes
+Edge and failure cases
+  TC-4  AC-1    unit         reply timestamp before request     formatReplyTime()  returns "awaiting reply", no negative  no
+
+Out of scope: reply-time sorting, SLA colours.
+Approve? (yes / edit)
+```
+
+How the planned cases flow through the rest of the system:
+
+| Stage | What happens to the test cases |
+|---|---|
+| Builder | Writes every TC first, named with its ID (`it("TC-4: …")`), sees each fail, then implements. May add tests, never drop or weaken a planned one |
+| Reviewer | Checks every planned TC exists, matches its Given/When/Then and can fail. A missing or weakened one is `important` |
+| QA | The video shows each `Video: yes` case, in order |
+| PR | The *Test cases* section lists every TC with its result and where it appears in the video |
+| Scope change | The manager updates the record's test cases first, you re-approve, then the builder continues |
+
+### 5.3 Your daily loop
 
 ```mermaid
 flowchart TB
@@ -339,14 +392,14 @@ flowchart TB
     J --> F
 ```
 
-### 5.3 Commands
+### 5.4 Commands
 
 | Command | Who | What it does |
 |---|---|---|
 | `/orchestrate init` | you, once | Ask the 4 setup questions, write config, seed ADRs |
-| `/orchestrate tasks "<text>"` | you (text mode) | One or more text tasks → task records for approval → builders |
+| `/orchestrate tasks "<text>"` | you (text mode) | One or more text tasks → criteria + test cases for approval → builders |
 | `/orchestrate build [ticket…]` | you (ticket mode) | Start builders for given or ready tickets |
-| `/orchestrate plan "<goal>"` | you | Break a goal into tasks with dependencies; no builders yet |
+| `/orchestrate plan "<goal>"` | you | Break a goal into tasks with criteria, test cases and dependencies; no builders yet |
 | `/orchestrate tick` | the loop | Check builders, relay PR comments, start new builders |
 | `/orchestrate status` | you | ID · repo · stage · rounds · PR · blocker |
 | `/adr "<title>"` | anyone | Draft a Proposed ADR |
@@ -354,7 +407,7 @@ flowchart TB
 
 There's no merge command. Merging happens in GitHub, by a person.
 
-### 5.4 Talking to the manager
+### 5.5 Talking to the manager
 
 - "What needs me?" gets you one question at a time, each with a recommendation.
 - "Pause everything touching auth." makes it hold those builders.
@@ -372,7 +425,9 @@ Don't open a builder's session to fix something yourself. Tell the manager or co
 ```mermaid
 stateDiagram-v2
     [*] --> Drafted: /orchestrate tasks · ticket pulled
-    Drafted --> Ready: human approves
+    Drafted --> Planned: manager writes AC + test cases
+    Planned --> Drafted: human asks for changes
+    Planned --> Ready: human approves · validate-task.py ✓
     Ready --> Numbered: allocate-number.sh (per repo)
     Numbered --> Building: worktree + branch from origin/base, pushed
     Building --> Blocked: builder asks a question
@@ -404,12 +459,14 @@ sequenceDiagram
     participant G as GitHub
 
     H->>M: /orchestrate tasks "show contractor reply time in inbox"
-    M->>H: 1 task, repo web, OK?
+    M->>M: read web's existing tests · plan AC-1..2, TC-1..4
+    M->>H: AA-0017 criteria + 4 test cases, OK?
     H->>M: approve
+    M->>M: validate-task.py ✓
     M->>M: allocate-number.sh web → AA-0017
     M->>B: brief: AA-0017 · web · base development · ADR links
     B->>G: worktree from origin/development · push feat/AA-0017-inbox-reply-time
-    B->>B: failing test → implement → verify
+    B->>B: write TC-1..4 → see them fail → implement → verify
     loop every 15 min (timer)
         M->>B: status?
         B-->>M: progress / question
@@ -440,8 +497,8 @@ sequenceDiagram
 
 ```mermaid
 flowchart TB
-    S["Brief: task + criteria + ID + repo + base<br/>+ relevant ADRs"] --> W["git fetch · git worktree add …/.orchestra-wt/ID<br/>-b feat/ID-slug origin/base · push"]
-    W --> F["Write a failing test"]
+    S["Brief: task + criteria + approved test cases<br/>+ ID + repo + base + relevant ADRs"] --> W["git fetch · git worktree add …/.orchestra-wt/ID<br/>-b feat/ID-slug origin/base · push"]
+    W --> F["Write every planned TC-n<br/>see each fail"]
     F --> I["Implement"]
     I --> V{"verify passes?"}
     V -- no --> I
@@ -672,6 +729,7 @@ your project as **Proposed**:
 | 0014 | PR videos are hosted outside the repo: gh --attach first, bucket fallback |
 | 0015 | Agents follow the project's existing branch, commit and PR conventions |
 | 0016 | Config is JSON and hooks use only the Python standard library |
+| 0017 | Test cases are planned with the task, before a builder starts |
 
 `init` also appends [`templates/claude-md-section.md`](../templates/claude-md-section.md) to your
 CLAUDE.md, so every agent session knows the ADR rules.
@@ -704,7 +762,7 @@ session in the same repo is unaffected.
 | | `git commit` with a body, a second `-m`, attribution, or a subject that doesn't match | 0015 |
 | `adr_guard.py` | `gh pr create` when the diff touches `adr.guard_paths` without adding an ADR (opt out with "No ADR needed: <reason>") | 0001 |
 
-`tests/run.sh` covers every row above plus the allocator. Run it after changing a hook.
+`tests/run.sh` covers every row above, the allocator and `validate-task.py`. Run it after changing a hook.
 
 ### 11.3 State on disk (project's `.orchestra/`, gitignored)
 

@@ -25,3 +25,4 @@ Accepted ADRs are immutable apart from their Status line.
 | [0014](0014-proof-hosting-outside-repo.md) | PR videos are hosted outside the repo: gh --attach first, bucket fallback | Accepted | 2026-11-19 |
 | [0015](0015-follow-project-conventions.md) | Agents follow the project's existing branch, commit and PR conventions | Accepted | 2026-11-19 |
 | [0016](0016-json-config-stdlib-hooks.md) | Config is JSON and hooks use only the Python standard library | Accepted | 2026-11-19 |
+| [0017](0017-test-cases-planned-with-the-task.md) | Test cases are planned with the task, before a builder starts | Accepted | 2026-11-19 |

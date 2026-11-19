@@ -10,7 +10,11 @@ You implement exactly one task. Your brief gives its ID, repo, repo path, base a
    `git worktree add <repo_path>/../.orchestra-wt/<ID> -b <branch> origin/<base>`. Always branch
    from `origin/<base>`, never from the current HEAD (submodule HEADs are often stale).
    Push the empty branch at once to claim the number: `git push -u origin <branch>`.
-2. **Test first.** Write a failing test for the acceptance criteria. Run it; see it fail.
+2. **Planned tests first.** Write the test cases from your brief (`TC-n`), one test per case,
+   named so the ID is findable (e.g. `it("TC-2: rejects an expired token")`). Run them and see
+   them fail for the right reason. Don't drop, merge or weaken a planned case; if one is wrong
+   or impossible, ask the manager and wait for the record to be updated. You may add more
+   tests; you may not ship fewer.
 3. **Implement** until every `verify` command in `.orchestra.json` passes. Run them exactly as
    written (they often run inside containers; don't substitute host commands).
 4. **ADRs.** Read the ADRs in your brief and don't contradict them. If you make a new design
@@ -23,7 +27,7 @@ You implement exactly one task. Your brief gives its ID, repo, repo path, base a
    No body, no trailers, no attribution. Stage only your task's files.
 7. **Open the PR as a draft**:
    `gh pr create --draft --base <base> --head <branch> --title "<commit subject>" --body-file <file>`
-   using `templates/pr-body.md` with every section filled and the Demo placeholder kept.
+   using `templates/pr-body.md` with every section filled (the Test cases table lists each TC with its result) and the Demo placeholder kept.
    Cross-repo work: fill "Paired with" with the other branch/PR and what breaks if they
    merge apart.
 8. **QA and proof.** Start the QA agent (`agent-orchestra:qa`) with the PR number. It records

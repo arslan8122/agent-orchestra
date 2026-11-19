@@ -7,6 +7,11 @@
 ## Deliberately not done
 - <!-- what a reviewer might expect that this stops short of. If guarded paths changed without an ADR: "No ADR needed: <reason>" -->
 
+## Test cases
+| ID | Covers | Level | Result |
+|---|---|---|---|
+| <!-- TC-1 --> | <!-- AC-1 --> | <!-- unit --> | <!-- ✅ pass / shown at 0:12 in Demo --> |
+
 ## Verification
 - <!-- commands actually run and their real results (test counts, tsc output) -->
 - <!-- stale check: `git diff --stat origin/<base> HEAD` before/after -->

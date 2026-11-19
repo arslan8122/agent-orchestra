@@ -1,6 +1,5 @@
 {
   "version": 1,
-
   "work": {
     "source": "text",
     "tickets": {
@@ -10,35 +9,59 @@
       "link_in_pr": true
     }
   },
-
   "repos": {
-    "api": { "path": "services/api", "base": "development" },
-    "web": { "path": "apps/web", "base": "development" },
-    "docs": { "path": "docs-site", "base": "main", "branch_type": "docs" }
+    "api": {
+      "path": "services/api",
+      "base": "development"
+    },
+    "web": {
+      "path": "apps/web",
+      "base": "development"
+    },
+    "docs": {
+      "path": "docs-site",
+      "base": "main",
+      "branch_type": "docs"
+    }
   },
-
   "verify": [
     "docker compose exec -T api npm test",
     "docker compose exec -T web npx tsc --noEmit"
   ],
-
   "pr": {
     "convention_source": ".claude/commands/open-pr.md",
     "never_merge": true,
-    "numbering": { "prefix": "AA", "digits": 4, "scope": "per-repo" },
-    "branch": { "pattern": "{type}/{id}-{slug}", "types": ["feat", "fix"] },
+    "numbering": {
+      "prefix": "AA",
+      "digits": 4,
+      "scope": "per-repo"
+    },
+    "branch": {
+      "pattern": "{type}/{id}-{slug}",
+      "types": [
+        "feat",
+        "fix"
+      ]
+    },
     "commit": {
       "pattern": "^(feat|fix|docs|chore|refactor|test|perf|build|ci)(\\([a-z0-9._/-]+\\))?: \\S.*$",
       "one_line": true
     },
     "attribution": "none",
     "body": {
-      "sections": ["Problem", "Change", "Deliberately not done", "Verification", "Demo", "Paired with"]
+      "sections": [
+        "Problem",
+        "Change",
+        "Deliberately not done",
+        "Test cases",
+        "Verification",
+        "Demo",
+        "Paired with"
+      ]
     },
     "open_as_draft_until_proof": true,
     "stale_check": true
   },
-
   "proof": {
     "record": "npx playwright test --video=on --grep \"{id}\"",
     "artifacts": "test-results/",
@@ -50,14 +73,23 @@
       "public_base_url": "https://pub-<hash>.r2.dev"
     }
   },
-
-  "builders": { "max": 3, "isolation": "worktree", "review_rounds_max": 3 },
-  "supervision": { "tick": "15m" },
-
+  "builders": {
+    "max": 3,
+    "isolation": "worktree",
+    "review_rounds_max": 3
+  },
+  "supervision": {
+    "tick": "15m"
+  },
   "adr": {
     "dir": "docs/adr",
-    "guard_paths": ["docker-compose.yml", "**/schema.prisma", "**/auth/**"]
+    "guard_paths": [
+      "docker-compose.yml",
+      "**/schema.prisma",
+      "**/auth/**"
+    ]
   },
-
-  "budget": { "max_parallel_agents": 8 }
+  "budget": {
+    "max_parallel_agents": 8
+  }
 }

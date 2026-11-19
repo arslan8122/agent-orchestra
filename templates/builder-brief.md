@@ -10,11 +10,14 @@
 ## Acceptance criteria
 {criteria}
 
+## Test cases (approved; implement these first)
+{test_cases}
+
 ## Architecture decisions you must respect
 {adr_links}
 
 ## Definition of done (ADR-0007)
-1. A failing test for the acceptance criteria exists before the implementation.
+1. Every planned test case (TC-n) exists and failed before the implementation.
 2. Every `verify` command in `.orchestra.json` passes.
 3. Reviewer approved within {review_rounds_max} rounds (else stop and report).
 4. QA recorded a video of the change working.
